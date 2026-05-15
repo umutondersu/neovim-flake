@@ -18,15 +18,38 @@ jobs:
       - name: Install Nix
         uses: DeterminateSystems/nix-installer-action@v14
 
+      - name: Get current neovim version
+        id: before
+        run: |
+          rev=$(jq -r '.nodes.nixpkgs.locked.rev' flake.lock)
+          version=$(nix eval --raw "github:nixos/nixpkgs/${rev}#neovim-unwrapped.version")
+          echo "version=${version}" >> "$GITHUB_OUTPUT"
+
       - name: Update flake inputs
         run: nix flake update
 
-      - name: Commit and push if changed
+      - name: Get new neovim version
+        id: after
+        run: |
+          rev=$(jq -r '.nodes.nixpkgs.locked.rev' flake.lock)
+          version=$(nix eval --raw "github:nixos/nixpkgs/${rev}#neovim-unwrapped.version")
+          echo "version=${version}" >> "$GITHUB_OUTPUT"
+
+      - name: Commit and push if neovim version changed
+        if: steps.before.outputs.version != steps.after.outputs.version
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
-          git diff --quiet flake.lock || (
-            git add flake.lock &&
-            git commit -m "flake: update inputs $(date -u '+%Y-%m-%d')" &&
-            git push
-          )
+          git add flake.lock
+          git commit -m "Update to v${{ steps.after.outputs.version }}"
+          git push
+
+      - name: Create release if neovim version changed
+        if: steps.before.outputs.version != steps.after.outputs.version
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release create "v${{ steps.after.outputs.version }}" \
+            --title "v${{ steps.after.outputs.version }}" \
+            --notes "Bump neovim from v${{ steps.before.outputs.version }} to v${{ steps.after.outputs.version }}." \
+            --latest
