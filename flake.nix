@@ -1,5 +1,5 @@
 {
-  description = "Neovim 0.12 flake with treesitter-cli + clipboard support";
+  description = "Neovim 0.12 flake with support for my personal configuration";
 
   inputs.nixpkgs.url = "github:nixos/nixpkgs?ref=nixos-unstable";
 
@@ -39,6 +39,8 @@
                   xsel
                   wl-clipboard
                   tree-sitter
+                  nodejs_24 # copilot.lua + build commands for some plugins
+                  deno # peek.nvim
                 ]
               ))
             ];
