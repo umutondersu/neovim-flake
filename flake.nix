@@ -35,12 +35,24 @@
               (lib.makeBinPath (
                 with pkgs;
                 [
+                  # clipboard
                   xclip
-                  xsel
                   wl-clipboard
+                  # blink.cmp
+                  curl
+                  # Treesitter
+                  gcc
                   tree-sitter
-                  nodejs_24 # copilot.lua + build commands for some plugins
+                  # plugins requiring node (copilot, etc.)
+                  nodejs_24
+                  # Snacks
+                  ripgrep
+                  fd
+                  lazygit
+                  git
+                  # optional tools
                   deno # peek.nvim
+                  gh # github autocompletion + octo.nvim
                 ]
               ))
             ];
