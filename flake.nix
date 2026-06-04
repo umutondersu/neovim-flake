@@ -34,9 +34,6 @@
             (lib.makeBinPath (
               with pkgs;
               [
-                # clipboard
-                xclip
-                wl-clipboard
                 # blink.cmp
                 curl
                 # Treesitter
@@ -52,6 +49,11 @@
                 # optional tools
                 deno # peek.nvim
                 gh # github autocompletion + octo.nvim
+              ]
+              # Conditionally include Linux clipboard tools
+              ++ lib.optionals stdenv.isLinux [
+                xclip
+                wl-clipboard
               ]
             ))
           ];
