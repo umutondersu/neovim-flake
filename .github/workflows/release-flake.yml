@@ -1,0 +1,39 @@
+name: Release flake
+
+on:
+  workflow_dispatch:
+    inputs:
+      notes:
+        description: "Release notes"
+        required: false
+        default: "Flake-only changes"
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          fetch-tags: true
+
+      - name: Compute next tag
+        id: tag
+        run: |
+          git fetch --tags --force
+          latest=$(git tag --sort=-v:refname | head -n1)
+          base=${latest%%-*}
+          if [[ "$latest" == *-* ]]; then next=$(( ${latest##*-} + 1 )); else next=1; fi
+          echo "tag=${base}-${next}" >> "$GITHUB_OUTPUT"
+
+      - name: Create release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release create "${{ steps.tag.outputs.tag }}" \
+            --title "${{ steps.tag.outputs.tag }}" \
+            --notes "${{ inputs.notes }}" \
+            --latest
