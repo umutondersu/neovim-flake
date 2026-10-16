@@ -1,6 +1,9 @@
 name: Release flake
 
 on:
+  push:
+    branches: [main]
+    paths: ["flake.nix"]
   workflow_dispatch:
     inputs:
       notes:
@@ -20,8 +23,26 @@ jobs:
           fetch-depth: 0
           fetch-tags: true
 
+      - name: Check for skip marker
+        id: guard
+        env:
+          EVENT_NAME: ${{ github.event_name }}
+          COMMIT_MSG: ${{ github.event.head_commit.message }}
+        run: |
+          skip=false
+          if [[ "$EVENT_NAME" == "push" ]]; then
+            subject=$(echo "$COMMIT_MSG" | head -n1)
+            if [[ "$subject" =~ ^(wip|WIP|fixup|squash) ]] \
+              || [[ "$subject" == *"[skip release]"* ]] \
+              || [[ "$subject" == *"[no release]"* ]]; then
+              skip=true
+            fi
+          fi
+          echo "skip=$skip" >> "$GITHUB_OUTPUT"
+
       - name: Compute next tag
         id: tag
+        if: steps.guard.outputs.skip != 'true'
         run: |
           git fetch --tags --force
           latest=$(git tag --sort=-v:refname | head -n1)
@@ -29,11 +50,32 @@ jobs:
           if [[ "$latest" == *-* ]]; then next=$(( ${latest##*-} + 1 )); else next=1; fi
           echo "tag=${base}-${next}" >> "$GITHUB_OUTPUT"
 
+      - name: Resolve release notes
+        id: notes
+        if: steps.guard.outputs.skip != 'true'
+        env:
+          INPUT_NOTES: ${{ inputs.notes }}
+          COMMIT_MSG: ${{ github.event.head_commit.message }}
+        run: |
+          if [[ -n "$INPUT_NOTES" ]]; then
+            notes="$INPUT_NOTES"
+          elif [[ -n "$COMMIT_MSG" ]]; then
+            notes=$(echo "$COMMIT_MSG" | head -n1)
+          else
+            notes="Flake-only changes"
+          fi
+          {
+            echo "body<<EOF"
+            echo "$notes"
+            echo "EOF"
+          } >> "$GITHUB_OUTPUT"
+
       - name: Create release
+        if: steps.guard.outputs.skip != 'true'
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
           gh release create "${{ steps.tag.outputs.tag }}" \
             --title "${{ steps.tag.outputs.tag }}" \
-            --notes "${{ inputs.notes }}" \
+            --notes "${{ steps.notes.outputs.body }}" \
             --latest
