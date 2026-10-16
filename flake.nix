@@ -39,7 +39,7 @@
                 # Treesitter
                 gcc
                 tree-sitter
-                # plugins requiring node (copilot, etc.)
+                # plugins requiring node
                 nodejs_24
                 # Snacks
                 ripgrep
@@ -48,7 +48,6 @@
                 git
                 # optional tools
                 deno # peek.nvim
-                gh # github autocompletion + octo.nvim
               ]
               # Conditionally include Linux clipboard tools
               ++ lib.optionals stdenv.isLinux [
