@@ -50,7 +50,7 @@
                 deno # peek.nvim
               ]
               # Conditionally include Linux clipboard tools
-              ++ lib.optionals stdenv.isLinux [
+              ++ lib.optionals stdenv.hostPlatform.isLinux [
                 xclip
                 wl-clipboard
               ]
